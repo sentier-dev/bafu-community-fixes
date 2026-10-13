@@ -166,3 +166,15 @@ def test_correction_patches_link_every_correction_to_brightway_flows():
     for p in patches:
         for item in p.evidence:
             assert item.links and all(url.startswith(FLOW_PAGE) for _, url in item.links)
+
+
+def test_flag_aggregated(db, dataset):
+    dataset.number, dataset.reference_function.name = 351127, "Benzene, at plant"
+    (changed,) = apply_patch(db, _patch("0011-flag-aggregated"))
+    assert changed.meta_information.process_information.data_set_information.type == 2
+
+
+def test_flag_aggregated_stops_on_unexpected_name(db, dataset):
+    dataset.number, dataset.reference_function.name = 351127, "Toluene, at plant"
+    with pytest.raises(ValueError, match="expected unit process 'Benzene, at plant'"):
+        apply_patch(db, _patch("0011-flag-aggregated"))
