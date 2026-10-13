@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Synthetic dataset with the quirks of the raw BAFU 2026 release -->
+<ecoSpold>
+  <dataset generator="test" number="100" timestamp="2025-09-04 18:38:44.741718">
+    <metaInformation>
+      <processInformation>
+        <timePeriod dataValidForEntirePeriod="True">
+          <startDate>2021-02</startDate>
+          <endDate>2022</endDate>
+        </timePeriod>
+        <referenceFunction amount="1.0" category="electricity" datasetRelatesToProduct="True" generalComment="Some comment. Engine power: 5 kW." infrastructureProcess="False" localCategory="Strom" localName="Strom" localSubCategory="Gas" name="Electricity, at plant" subCategory="gas" text="Engine power: 5 kW." unit="kWh"/>
+        <geography location="Europe without Switzerland" text=""/>
+        <technology text="Average"/>
+        <dataSetInformation energyValues="0" impactAssessmentResult="False" internalVersion="1.0" languageCode="en" localLanguageCode="de" timestamp="2024-06-21T22:32:02.538+02:00" type="1" version="2023"/>
+      </processInformation>
+      <modellingAndValidation>
+        <representativeness percent="100"/>
+        <validation proofReadingDetails="" proofReadingValidator="2"/>
+        <validation/>
+        <source additionalAuthors="" firstAuthor="Doe J." number="10" placeOfPublications="Bern" publisher="A publisher whose name is far too long for EcoSpold" sourceNumber="999" sourceType="0" title="Report" volumeNo="nan" year=""/>
+      </modellingAndValidation>
+      <administrativeInformation>
+        <dataGeneratorAndPublication accessRestrictedTo="0" copyright="" dataPublishedIn="0" person="1" referenceToPublishedSource="99"/>
+        <person address="Somewhere" companyCode="CARBOTECH" countryCode="CH" name="Jane Doe" number="1"/>
+        <dataEntryBy person="1"/>
+        <person companyCode="" countryCode="" name="John Doe" number="2"/>
+      </administrativeInformation>
+    </metaInformation>
+    <flowData>
+      <exchange category="electricity" generalComment="" infrastructureProcess="False" location="Europe without Switzerland" meanValue="1.0" name="Electricity, at plant" number="100" subCategory="gas" uncertaintyType="0" unit="kWh">
+        <outputGroup>0</outputGroup>
+      </exchange>
+      <exchange CASNumber="2025884" category="air" generalComment="" meanValue="1.5E-4" name="Sulfur dioxide" number="7" standardDeviation95="1.2" subCategory="unspecified" uncertaintyType="1" unit="kg">
+        <outputGroup>4</outputGroup>
+      </exchange>
+      <exchange CASNumber="" category="heat" meanValue="3.2" name="Heat" number="7" uncertaintyType="0" unit="MJ">
+        <inputGroup>5</inputGroup>
+      </exchange>
+    </flowData>
+  </dataset>
+</ecoSpold>

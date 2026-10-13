@@ -1,0 +1,121 @@
+#browser {
+    width: 40%;
+    min-width: 30;
+    border-right: solid $primary-darken-2;
+    padding: 0 1;
+}
+
+#tree {
+    height: 1fr;
+}
+
+#form {
+    padding: 0 2;
+}
+
+.heading {
+    margin-top: 1;
+    text-style: bold;
+    color: $accent;
+}
+
+.help {
+    color: $text-muted;
+}
+
+.row {
+    height: auto;
+}
+
+.row Input {
+    width: 1fr;
+}
+
+#patches {
+    height: auto;
+    max-height: 20;
+}
+
+#run {
+    margin: 1 0;
+    width: 100%;
+}
+
+#progress-panel {
+    width: 90;
+    max-width: 100%;
+    height: auto;
+    margin: 2 0;
+    padding: 1 2;
+    border: round $primary;
+}
+
+.title {
+    text-style: bold;
+    color: $accent;
+    margin-bottom: 1;
+}
+
+#stages-done {
+    color: $success;
+}
+
+#stage {
+    text-style: bold;
+    margin-top: 1;
+}
+
+#progress {
+    margin: 1 0;
+}
+
+#cancel {
+    margin-top: 1;
+}
+
+#results {
+    padding: 1 4;
+}
+
+#error-box {
+    height: auto;
+    max-height: 20;
+    border: tall $error;
+    padding: 0 1;
+    margin: 1 0;
+}
+
+#result-actions {
+    dock: bottom;
+    height: auto;
+    padding: 1 4;
+    background: $boost;
+}
+
+#result-actions Button {
+    margin-right: 2;
+}
+
+#patch-details {
+    color: $text-muted;
+    padding: 0 1;
+    margin-bottom: 1;
+}
+
+.placeholder {
+    height: auto;
+    margin-top: 1;
+}
+
+.placeholder-label {
+    width: 10;
+    padding-top: 1;
+}
+
+.placeholder Input {
+    width: 24;
+}
+
+.placeholder-help {
+    padding-left: 10;
+}

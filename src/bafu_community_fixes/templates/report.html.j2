@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BAFU community fixes · run report · {{ log.started.strftime("%Y-%m-%d %H:%M") }}</title>
+<style>
+@font-face {
+  font-family: "Rubik";
+  src: url(data:font/ttf;base64,{{ assets.font }}) format("truetype");
+  font-weight: 300 900;
+}
+:root {
+  /* Sentier.dev brand colours (github.com/sentier-dev/Branding) */
+  --blue: #3e5c76;
+  --blue-tint: #e3f1fc;
+  --blue-track: #d5e1ec;
+  --green: #4c635f;
+  --green-tint: #eef5ea;
+  --brown: #685b5a;
+  --peach: #fbece3;
+  --ink: #353535;
+  --ink-muted: #6b6b6b;
+  --rule: #e4e2df;
+  --surface: #fcfcfb;
+  /* Status (reserved; always with an icon and a label) */
+  --ok: #3b6b4f;
+  --ok-tint: #e6f2ea;
+  --warn: #8a5a12;
+  --warn-tint: #fdf1dc;
+  --fail: #9b2f2f;
+  --fail-tint: #fbe6e4;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: 400 15px/1.55 "Rubik", system-ui, sans-serif;
+}
+main { max-width: 1120px; margin: 0 auto; padding: 0 32px 64px; }
+a { color: var(--blue); }
+code { font-family: var(--mono); font-size: 0.86em; background: #f1efec; padding: 1px 4px; border-radius: 3px; }
+h1, h2, h3 { font-weight: 600; line-height: 1.25; margin: 0; }
+h2 { font-size: 22px; margin: 48px 0 16px; }
+h3 { font-size: 18px; }
+p { margin: 0 0 10px; }
+
+/* Header */
+header.masthead { background: var(--blue-tint); border-bottom: 1px solid var(--blue-track); }
+header.masthead .inner { max-width: 1120px; margin: 0 auto; padding: 28px 32px; display: flex; align-items: center; gap: 28px; }
+header.masthead svg { height: 52px; width: auto; flex: none; }
+header.masthead .titles { border-left: 1px solid var(--blue-track); padding-left: 28px; }
+header.masthead h1 { font-size: 26px; color: var(--ink); }
+header.masthead .sub { color: var(--ink-muted); margin-top: 2px; }
+header.masthead .status { margin-left: auto; text-align: right; }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.badge.ok { color: var(--ok); background: var(--ok-tint); }
+.badge.warn { color: var(--warn); background: var(--warn-tint); }
+.badge.fail { color: var(--fail); background: var(--fail-tint); }
+.badge.neutral { color: var(--ink-muted); background: #efedea; }
+.chip { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; color: var(--brown); background: var(--peach); padding: 2px 8px; border-radius: 4px; }
+.chip.patch { color: var(--green); background: var(--green-tint); }
+
+/* Stat tiles */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-top: 32px; }
+.tile { background: #fff; border: 1px solid var(--rule); border-radius: 10px; padding: 16px 18px; }
+.tile .label { color: var(--ink-muted); font-size: 13px; }
+.tile .value { font-size: 30px; font-weight: 600; margin-top: 4px; line-height: 1.1; }
+.tile .note { color: var(--ink-muted); font-size: 13px; margin-top: 4px; }
+
+/* Callouts */
+.callout { border-radius: 10px; padding: 16px 20px; margin-top: 24px; }
+.callout.warn { background: var(--warn-tint); color: #5a3b0c; }
+.callout.fail { background: var(--fail-tint); color: #5e1c1c; }
+.callout h3 { font-size: 16px; margin-bottom: 6px; }
+.callout ul { margin: 6px 0 0; padding-left: 20px; }
+.callout pre { white-space: pre-wrap; font-family: var(--mono); font-size: 13px; margin: 8px 0 0; max-height: 360px; overflow: auto; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: 12px; font-weight: 500; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+td { padding: 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.overview td { vertical-align: middle; }
+.overview .order { color: var(--ink-muted); font-variant-numeric: tabular-nums; width: 32px; }
+.overview .step a { font-weight: 500; text-decoration: none; }
+.overview .step .desc { color: var(--ink-muted); font-size: 13px; }
+.meter { display: flex; align-items: center; gap: 10px; min-width: 210px; }
+.meter .track { flex: 1; height: 8px; background: var(--blue-track); border-radius: 4px; overflow: hidden; }
+.meter .fill { height: 100%; background: var(--blue); border-radius: 4px; min-width: 2px; }
+.meter .fill.zero { min-width: 0; }
+.meter .count { width: 132px; text-align: right; font-variant-numeric: tabular-nums; font-size: 14px; }
+.meter .count span { color: var(--ink-muted); font-size: 12px; }
+
+/* Step cards */
+.step-card { background: #fff; border: 1px solid var(--rule); border-radius: 12px; padding: 24px 28px; margin-top: 20px; }
+.step-card header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.step-card header h3 { font-family: var(--mono); font-size: 17px; font-weight: 600; }
+.step-card .summary { font-size: 16px; margin: 10px 0 12px; }
+.step-card .rationale { color: #4a4a4a; }
+.step-card .rationale ul { margin: 0 0 10px; padding-left: 20px; }
+.step-card .rationale li { margin-bottom: 4px; }
+.provenance { display: grid; grid-template-columns: max-content 1fr; gap: 4px 18px; margin: 16px 0; font-size: 14px; }
+.provenance dt { color: var(--ink-muted); }
+.provenance dd { margin: 0; }
+.stats { display: flex; gap: 28px; padding: 12px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); margin: 16px 0; font-size: 14px; }
+.stats b { font-size: 18px; font-weight: 600; display: block; }
+.stats span { color: var(--ink-muted); }
+.fields td.field { font-family: var(--mono); font-size: 13px; width: 34%; overflow-wrap: anywhere; }
+.transitions { list-style: none; margin: 0; padding: 0; }
+.transitions li { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: baseline; gap: 8px; padding: 2px 0; }
+.transitions li.more { display: block; }
+.transitions li > code.value, .transitions li > .absent { justify-self: start; }
+.transitions .arrow { color: var(--ink-muted); }
+.transitions .times { color: var(--ink-muted); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.transitions .more { color: var(--ink-muted); font-size: 13px; }
+code.value { background: #f4f2ef; word-break: break-all; }
+.absent { font-style: italic; color: var(--ink-muted); font-size: 13px; }
+details { margin-top: 16px; }
+details > summary { cursor: pointer; color: var(--blue); font-weight: 500; }
+.example { margin-top: 14px; }
+.example h4 { font-size: 14px; font-weight: 500; margin: 0 0 4px; }
+.example h4 .meta { color: var(--ink-muted); font-weight: 400; }
+.example table td { font-size: 13px; padding: 6px 10px; }
+.example td.path { font-family: var(--mono); overflow-wrap: anywhere; width: 36%; }
+.muted { color: var(--ink-muted); }
+
+/* Before/after example */
+.snippet { margin: 18px 0 8px; }
+.snippet .where { font-size: 14px; color: var(--ink-muted); margin-bottom: 8px; }
+.snippet .where b { color: var(--ink); font-weight: 500; }
+.snippet .sides { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.snippet .side { border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; min-width: 0; }
+.snippet .side .label { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 12px; border-bottom: 1px solid var(--rule); }
+.snippet .before .label { color: var(--fail); background: var(--fail-tint); }
+.snippet .after .label { color: var(--ok); background: var(--ok-tint); }
+.snippet pre { margin: 0; padding: 8px 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; overflow-x: auto; background: #fff; }
+.snippet pre span { display: block; padding: 0 12px; white-space: pre; }
+.snippet .before pre span.changed { background: var(--fail-tint); }
+.snippet .after pre span.changed { background: var(--ok-tint); }
+
+/* Evidence */
+.evidence { width: 100%; table-layout: fixed; margin: 14px 0; font-size: 14px; }
+.evidence td { padding: 7px 10px; overflow-wrap: anywhere; }
+.evidence th:nth-child(1) { width: 34%; }
+.evidence th:nth-child(2) { width: 40%; }
+.evidence th:nth-child(3) { width: 26%; }
+.evidence code { white-space: nowrap; }
+
+/* Rules */
+.rules { margin: 14px 0 4px; padding: 14px 18px; background: var(--blue-tint); border-radius: 8px; }
+.rules h4 { font-size: 14px; font-weight: 600; margin: 0 0 8px; }
+.rules ul { list-style: none; margin: 0; padding: 0; }
+.rules li { display: grid; grid-template-columns: 120px 1fr; gap: 12px; padding: 5px 0; }
+.rules li + li { border-top: 1px solid var(--blue-track); }
+.rules .kind { font-size: 12px; font-weight: 500; padding-top: 2px; }
+.rules .kind.schema { color: var(--blue); }
+.rules .kind.convention { color: var(--brown); }
+.rules .ref { display: block; color: var(--ink-muted); font-size: 12px; font-family: var(--mono); margin-top: 2px; }
+
+/* Run details */
+.details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.details-grid table td:first-child { color: var(--ink-muted); width: 42%; }
+.details-grid td { font-size: 14px; word-break: break-word; }
+
+footer { max-width: 1120px; margin: 0 auto; padding: 24px 32px 40px; color: var(--ink-muted); font-size: 13px; border-top: 1px solid var(--rule); }
+
+@media (max-width: 760px) {
+  .details-grid { grid-template-columns: 1fr; }
+  .snippet .sides { grid-template-columns: 1fr; }
+  .rules li { grid-template-columns: 1fr; gap: 2px; }
+  header.masthead .inner { flex-wrap: wrap; }
+}
+@media print {
+  body { background: #fff; }
+  details { display: block; }
+  details > * { display: block; }
+  .step-card { break-inside: avoid-page; }
+}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="inner">
+    {{ assets.logo | safe }}
+    <div class="titles">
+      <h1>BAFU community fixes</h1>
+      <div class="sub">Pipeline run report · {{ log.started.day }} {{ log.started.strftime("%B %Y, %H:%M %Z") }}</div>
+    </div>
+    <div class="status">
+      {% if log.status == "completed" %}
+      <span class="badge ok">✓ Run completed</span>
+      {% elif log.status == "failed" %}
+      <span class="badge fail">✕ Run failed</span>
+      {% elif log.status == "cancelled" %}
+      <span class="badge warn">■ Run cancelled</span>
+      {% else %}
+      <span class="badge neutral">… {{ log.status }}</span>
+      {% endif %}
+    </div>
+  </div>
+</header>
+<main>
+
+<section class="tiles" aria-label="Summary">
+  <div class="tile">
+    <div class="label">Datasets processed</div>
+    <div class="value">{{ log.datasets | number }}</div>
+    <div class="note">{{ log.files | number }} files · {{ log.exchanges | number }} exchanges</div>
+  </div>
+  <div class="tile">
+    <div class="label">Datasets changed</div>
+    <div class="value">{{ log.changed_datasets | length | number }}</div>
+    <div class="note">{{ percent(log.changed_datasets | length, log.datasets) }} of all datasets</div>
+  </div>
+  <div class="tile">
+    <div class="label">Values changed</div>
+    <div class="value">{{ total_changes | number }}</div>
+    <div class="note">attributes and elements, all steps</div>
+  </div>
+  <div class="tile">
+    <div class="label">Steps applied</div>
+    <div class="value">{{ log.steps | length }}</div>
+    <div class="note">{{ import_fixes | length }} import fixes · {{ patches | length }} patches</div>
+  </div>
+  <div class="tile">
+    <div class="label">Schema compliance</div>
+    <div class="value">
+      {% if xsd_checked %}<span class="badge ok">✓ Verified</span>
+      {% elif log.status in ("failed", "cancelled") %}<span class="badge fail">✕ Not reached</span>
+      {% else %}<span class="badge neutral">Not checked</span>{% endif %}
+    </div>
+    <div class="note">
+      {% if xsd_checked %}official EcoSpold 1 XSD, {{ log.options["XSD schema check"] }}
+      {% else %}run with an XSD check to verify against the official schema{% endif %}
+    </div>
+  </div>
+</section>
+
+{% if log.status == "cancelled" %}
+<div class="callout warn" role="alert">
+  <h3>■ The run was cancelled before it finished</h3>
+  <p>Output files may be missing or incomplete. Steps listed below ran before the run was cancelled.</p>
+</div>
+{% endif %}
+
+{% if log.status == "failed" %}
+<div class="callout fail" role="alert">
+  <h3>✕ The run stopped with an error</h3>
+  <p>No output was written. Steps listed below ran before the error.</p>
+  <pre>{{ log.error }}</pre>
+</div>
+{% endif %}
+
+{% if unauthorised %}
+<div class="callout warn">
+  <h3>⚠ {{ unauthorised | length }} step{{ "s" if unauthorised | length != 1 }} changed data without recorded authorisation</h3>
+  <p>These changes were applied, but nobody is recorded as having approved them for the community release yet.</p>
+  <ul>
+    {% for step in unauthorised %}
+    <li><a href="#step-{{ step.id }}"><code>{{ step.id }}</code></a>: {{ step.datasets | number }} datasets, authored by {{ step.provenance.authored_by }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<h2>Steps</h2>
+<p class="muted">Import fixes always run first and make the raw release readable. Community patches run after them, in order.</p>
+<table class="overview">
+  <thead>
+    <tr>
+      <th>#</th><th>Step</th><th>Authorised by</th>
+      <th class="num">Datasets changed</th><th class="num">Values changed</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for step in log.steps %}
+    <tr>
+      <td class="order">{{ loop.index }}</td>
+      <td class="step">
+        <span class="chip {{ 'patch' if step.kind == 'patch' }}">{{ step.kind }}</span>
+        <a href="#step-{{ step.id }}"><code>{{ step.id }}</code></a>
+        <div class="desc">{{ step.description | inline }}</div>
+      </td>
+      <td>
+        {% if step.provenance.authorised_by %}<span class="badge ok">✓ {{ step.provenance.authorised_by }}</span>
+        {% else %}<span class="badge warn">⚠ Not yet authorised</span>{% endif %}
+      </td>
+      <td>
+        <div class="meter" title="{{ step.datasets | number }} of {{ log.datasets | number }} datasets ({{ percent(step.datasets, log.datasets) }})">
+          <div class="track"><div class="fill {{ 'zero' if not step.datasets }}" style="width: {{ (100 * step.datasets / log.datasets) if log.datasets else 0 }}%"></div></div>
+          <div class="count">{{ step.datasets | number }} <span>{{ percent(step.datasets, log.datasets) }}</span></div>
+        </div>
+      </td>
+      <td class="num">{{ step.changes | number }}</td>
+    </tr>
+    {% endfor %}
+    {% if not patches and log.status == "completed" %}
+    <tr><td></td><td colspan="4" class="muted">No community patches were applied in this run.</td></tr>
+    {% endif %}
+  </tbody>
+</table>
+
+<h2>What each step changed</h2>
+{% for step in log.steps %}
+<article class="step-card" id="step-{{ step.id }}">
+  <header>
+    <span class="chip {{ 'patch' if step.kind == 'patch' }}">{{ step.kind }} {{ loop.index }}</span>
+    <h3>{{ step.id }}</h3>
+  </header>
+  <p class="summary">{{ step.description | inline }}</p>
+  {% if step.rationale %}<div class="rationale">{{ step.rationale | prose }}</div>{% endif %}
+
+  <dl class="provenance">
+    {% if step.provenance.reported_by %}<dt>Reported by</dt><dd>{{ step.provenance.reported_by }}</dd>{% endif %}
+    {% if step.provenance.confirmed_by %}<dt>Confirmed by</dt><dd>{{ step.provenance.confirmed_by }}</dd>{% endif %}
+    <dt>Authored by</dt><dd>{{ step.provenance.authored_by }}</dd>
+    <dt>Authorised by</dt>
+    <dd>
+      {% if step.provenance.authorised_by %}<span class="badge ok">✓ {{ step.provenance.authorised_by }}</span>
+      {% else %}<span class="badge warn">⚠ Not yet authorised</span>{% endif %}
+    </dd>
+    {% if step.provenance.references %}
+    <dt>References</dt>
+    <dd>{% for ref in step.provenance.references %}<a href="{{ ref }}">{{ ref }}</a>{% if not loop.last %}<br>{% endif %}{% endfor %}</dd>
+    {% endif %}
+    {% if step.xsd_checked is not none %}
+    <dt>Schema check</dt>
+    <dd>
+      <span class="badge ok">✓ XSD-valid</span>
+      {% if step.kind == "import fix" %}
+      <span class="muted">all {{ step.xsd_checked | number }} datasets checked after the import fixes</span>
+      {% else %}
+      <span class="muted">the {{ step.xsd_checked | number }} datasets it changed were checked after this patch</span>
+      {% endif %}
+    </dd>
+    {% endif %}
+  </dl>
+
+  {% if step.snippet %}
+  {% set dataset, snippet = step.snippet %}
+  {% set before_lines, after_lines = diff_lines(snippet.before, snippet.after) %}
+  <div class="snippet">
+    <div class="where">Example from the data: <b>{{ dataset.name or "(unnamed)" }}</b> · {{ dataset.location }} · dataset {{ dataset.number }} · <code>{{ dataset.file }}</code></div>
+    <div class="sides">
+      <div class="side before">
+        <div class="label">Before</div>
+        <pre>{% for line, changed in before_lines %}<span{{ ' class="changed"' | safe if changed }}>{{ line }}</span>{% endfor %}</pre>
+      </div>
+      <div class="side after">
+        <div class="label">After</div>
+        <pre>{% for line, changed in after_lines %}<span{{ ' class="changed"' | safe if changed }}>{{ line }}</span>{% endfor %}</pre>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if step.evidence %}
+  <table class="evidence">
+    <thead><tr><th>Flow</th><th>Change</th><th>Details</th></tr></thead>
+    <tbody>
+      {% for item in step.evidence %}
+      <tr>
+        <td>{{ item.subject }}</td>
+        <td>{{ item.change | inline }}</td>
+        <td>{% for label, url in item.links %}<a href="{{ url }}">{{ label }}</a>{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if step.rules %}
+  <div class="rules">
+    <h4>Why this change is needed</h4>
+    <ul>
+      {% for rule in step.rules %}
+      <li>
+        <span class="kind {{ 'schema' if rule.schema else 'convention' }}">{{ "EcoSpold 1 rule" if rule.schema else "Our convention" }}</span>
+        <span>{{ rule.text | inline }}{% if rule.reference %}<span class="ref">{{ rule.reference }}</span>{% endif %}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="stats">
+    <div><b>{{ step.datasets | number }}</b><span>datasets changed ({{ percent(step.datasets, log.datasets) }})</span></div>
+    <div><b>{{ step.changes | number }}</b><span>values changed</span></div>
+    <div><b>{{ step.fields | length }}</b><span>distinct fields</span></div>
+  </div>
+
+  {% if step.fields %}
+  <table class="fields">
+    <thead><tr><th>Field</th><th class="num">Changes</th><th>Most common changes (before → after)</th></tr></thead>
+    <tbody>
+      {% for name, stats in step.fields.items() | sort(attribute="1.changes", reverse=true) %}
+      <tr>
+        <td class="field">{{ name | path }}</td>
+        <td class="num">{{ stats.changes | number }}</td>
+        <td>
+          <ul class="transitions">
+            {% for (old, new), count in stats.transitions.most_common(top_transitions) %}
+            <li>{{ old | value }} <span class="arrow">→</span> {{ new | value }} <span class="times">× {{ count | number }}</span></li>
+            {% endfor %}
+            {% set distinct = stats.transitions | length %}
+            {% if distinct > top_transitions or stats.other %}
+            <li class="more">… and {{ (distinct - top_transitions) | number if distinct > top_transitions else 0 }}{{ "+" if stats.other }} other distinct changes</li>
+            {% endif %}
+          </ul>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <details>
+    <summary>Every change in the first {{ step.examples | length }} of {{ step.datasets | number }} datasets</summary>
+    {% for dataset, changes in step.examples %}
+    <div class="example">
+      <h4>{{ dataset.name or "(unnamed)" }} <span class="meta">· {{ dataset.location }} · dataset {{ dataset.number }} · <code>{{ dataset.file }}</code></span></h4>
+      <table>
+        <thead><tr><th>Path</th><th>Before</th><th>After</th></tr></thead>
+        <tbody>
+          {% for change in changes[:max_example_changes] %}
+          <tr><td class="path">{{ change.path | path }}</td><td>{{ change.old | value }}</td><td>{{ change.new | value }}</td></tr>
+          {% endfor %}
+          {% if changes | length > max_example_changes %}
+          <tr><td colspan="3" class="muted">… and {{ (changes | length - max_example_changes) | number }} more changes in this dataset</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+  </details>
+  {% else %}
+  <p class="muted">This step didn't change any dataset in this run.</p>
+  {% endif %}
+</article>
+{% endfor %}
+
+<h2>Run details</h2>
+<div class="details-grid">
+  <table>
+    <tbody>
+      <tr><td>Input</td><td><code>{{ log.source }}</code></td></tr>
+      <tr><td>Input fingerprint (SHA-256)</td><td><code title="{{ log.input_fingerprint }}">{{ (log.input_fingerprint or "not computed")[:16] }}…</code></td></tr>
+      <tr><td>Output</td><td>{% if log.destination %}<code>{{ log.destination }}</code> ({{ log.written | number }} files){% else %}<span class="muted">nothing written</span>{% endif %}</td></tr>
+      <tr><td>Started</td><td>{{ log.started.strftime("%Y-%m-%d %H:%M:%S %Z") }}</td></tr>
+      <tr><td>Duration</td><td>{% if log.duration is not none %}{{ "%.1f" | format(log.duration) }} seconds{% endif %}</td></tr>
+      {% for key, value in log.options.items() %}
+      <tr><td>{{ key | capitalize }}</td><td>{{ "yes" if value is sameas true else "no" if value is sameas false else value }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <table>
+    <tbody>
+      {% for key, value in log.software.items() %}
+      <tr><td>{{ key }}</td><td><code>{{ value }}</code></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+</main>
+<footer>
+  Generated by bafu-community-fixes {{ log.software["bafu-community-fixes"] }}, a <a href="https://sentier.dev">Sentier.dev</a> project.
+  Changes are recorded as XML paths relative to each dataset; “absent” means the attribute or element didn't exist.
+</footer>
+</body>
+</html>
