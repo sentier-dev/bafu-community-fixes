@@ -176,5 +176,6 @@ def test_flag_aggregated(db, dataset):
 
 def test_flag_aggregated_stops_on_unexpected_name(db, dataset):
     dataset.number, dataset.reference_function.name = 351127, "Toluene, at plant"
-    with pytest.raises(ValueError, match="expected unit process 'Benzene, at plant'"):
+    with pytest.raises(ValueError, match="expected 'Benzene, at plant'"):
         apply_patch(db, _patch("0011-flag-aggregated"))
+

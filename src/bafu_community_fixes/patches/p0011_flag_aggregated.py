@@ -103,7 +103,7 @@ def flag_aggregated(db: Database) -> None:
             SYSTEM_TERMINATED,
         ):
             raise ValueError(
-                f"Dataset {dataset.number}: expected unit process "
-                f"{DATASETS[dataset.number]!r}, found type {info.type} {dataset.name!r}"
+                f"Dataset {dataset.number}: expected {DATASETS[dataset.number]!r} of type 1 "
+                f"or 2, found type {info.type} {dataset.name!r}"
             )
         info.type = SYSTEM_TERMINATED
