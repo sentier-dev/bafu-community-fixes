@@ -179,3 +179,15 @@ def test_flag_aggregated_stops_on_unexpected_name(db, dataset):
     with pytest.raises(ValueError, match="expected 'Benzene, at plant'"):
         apply_patch(db, _patch("0011-flag-aggregated"))
 
+
+def test_flag_aggregated_stops_on_unexpected_type(db, dataset):
+    dataset.number, dataset.reference_function.name = 351127, "Benzene, at plant"
+    dataset.meta_information.process_information.data_set_information.type = 5
+    with pytest.raises(ValueError, match="found type 5"):
+        apply_patch(db, _patch("0011-flag-aggregated"))
+
+
+def test_flag_aggregated_is_idempotent(db, dataset):
+    dataset.number, dataset.reference_function.name = 351127, "Benzene, at plant"
+    dataset.meta_information.process_information.data_set_information.type = 2
+    assert apply_patch(db, _patch("0011-flag-aggregated")) == []
