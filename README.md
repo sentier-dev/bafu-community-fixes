@@ -90,8 +90,21 @@ at the end of each dataset. The EcoSpold 1 schema allows foreign elements there,
 output stays valid. Extensions record:
 
 - which import fixes and patches changed each dataset
-- the original BAFU number of each renumbered exchange (`originalNumber`). About 30% of
-  these match a dataset number, so they may be useful for linking.
+- the original BAFU number of each exchange that got a dummy number (`originalNumber`)
+
+## Exchange numbers
+
+BAFU exchange numbers are identifiers: the reference product has the dataset's own number,
+a technosphere input almost always (99%) has the number of the dataset that supplies it, and
+an elementary flow has a number for its substance. They aren't unique within a dataset,
+which EcoSpold 1 requires, mostly because one substance emitted to several subcompartments
+shares a number.
+
+So numbers are kept wherever possible (about 73% of exchanges). Where several exchanges
+share a number, the reference product keeps it, or else the first one. The others get a
+dummy number, `1,000,000,000 + original number × 1,000 + occurrence`. For example,
+`1000631002` is the second exchange numbered 631. Any number of 1,000,000,000 or more is
+a dummy and links to nothing.
 
 In Python they are `dataset.ext` and `exchange.ext`. `--no-extensions` leaves them out.
 
