@@ -147,6 +147,7 @@ def fix_something(db: Database) -> None:
 | 0008 | Moves `Carbon dioxide, in air` to the `in air` resource compartment (Brightway Flows) |
 | 0009 | Writes elementary flows' CAS numbers zero-padded, and on every exchange of a flow |
 | 0010 | Links every elementary exchange to its Brightway Flows flow (extension attributes) |
+| 0011 | Marks 40 aggregated datasets (eco-profiles, iridium, cabinet panel) as system terminated (`type=2`) |
 
 Patches 0004–0008 change BAFU's own flow attributes and don't depend on 0010, which
 only adds links. The Brightway Flows data in `src/bafu_community_fixes/data/` is used
