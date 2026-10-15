@@ -69,9 +69,11 @@ DATASETS = ECO_PROFILES | OTHERS
     rules=(
         Rule(
             "A dataset holding the cumulative elementary flows of a whole supply chain is "
-            "'System terminated' (type 2), not 'Unit process' (type 1). BAFU already uses "
-            "type 2 for 101 such datasets; the schema documentation would also allow type 1 "
-            "for LCI results from outside ecoinvent, so this is our convention.",
+            "'System terminated' (type 2), not 'Unit process' (type 1). This deviates from "
+            "the schema documentation, which reserves type 2 for datasets calculated within "
+            "ecoinvent and classifies LCI results from outside it as unit processes. We "
+            "follow BAFU's own practice instead: it already uses type 2 for 102 such "
+            "datasets.",
             "dataSetInformation/@type",
             schema=False,
         ),
