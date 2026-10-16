@@ -143,7 +143,7 @@ def test_renumbering_is_idempotent():
     assert _numbers(ds) == ["7", "1000007002"]
 
 
-@pytest.mark.parametrize("number", ["1000000", "-3", "x"])
+@pytest.mark.parametrize("number", ["1000000", "-3", "x", "²"])
 def test_renumbering_refuses_numbers_it_cant_encode(number):
     ds = _dataset(
         f'<flowData><exchange number="{number}"/><exchange number="{number}"/></flowData>'

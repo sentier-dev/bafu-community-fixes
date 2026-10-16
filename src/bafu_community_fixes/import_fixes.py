@@ -648,15 +648,20 @@ MAX_ENCODED_NUMBER = 999_999
 MAX_OCCURRENCE = 999
 
 
+def _is_digits(value: str) -> bool:
+    # str.isdigit() also accepts characters like "²", which int() rejects
+    return value.isascii() and value.isdigit()
+
+
 def _index_number(value: str | None) -> int | None:
     """`value` as a schema-valid exchange number (1 to 2**31 - 1), or None."""
-    if value is None or not value.isdigit() or not 1 <= int(value) <= 2**31 - 1:
+    if value is None or not _is_digits(value) or not 1 <= int(value) <= 2**31 - 1:
         return None
     return int(value)
 
 
 def _dummy_number(original: str | None, occurrence: int) -> int:
-    if original is None or not original.isdigit() or int(original) > MAX_ENCODED_NUMBER:
+    if original is None or not _is_digits(original) or int(original) > MAX_ENCODED_NUMBER:
         raise ImportFixError(f"Can't encode exchange number {original!r} in a dummy number")
     if occurrence > MAX_OCCURRENCE:
         raise ImportFixError(f"More than {MAX_OCCURRENCE} exchanges numbered {original}")
