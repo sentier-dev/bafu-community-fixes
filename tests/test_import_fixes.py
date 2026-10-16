@@ -152,13 +152,30 @@ def test_renumbering_refuses_numbers_it_cant_encode(number):
         run_fix(_fix("renumber-exchanges"), ds)
 
 
-def test_renumbering_refuses_ambiguous_allocation():
+@pytest.mark.parametrize(
+    "exchanges, reference",
+    [
+        ('<exchange number="7"/><exchange number="7"/>', "7"),  # shared
+        ('<exchange number="0"/>', "0"),  # invalid, so it gets a dummy
+        ('<exchange number="7"/>', "8"),  # no such exchange
+    ],
+)
+def test_renumbering_refuses_unsafe_allocation(exchanges, reference):
     ds = _dataset(
-        '<flowData><exchange number="7"/><exchange number="7"/>'
-        '<allocation referenceToCoProduct="7"/></flowData>'
+        f'<flowData>{exchanges}<allocation referenceToCoProduct="{reference}"/></flowData>'
     )
     with pytest.raises(ImportFixError, match="Allocation"):
         run_fix(_fix("renumber-exchanges"), ds)
+
+
+def test_renumbering_allows_allocation_to_a_kept_number():
+    ds = _dataset(
+        '<flowData><exchange number="7"/><exchange number="8"/><exchange number="8"/>'
+        '<allocation referenceToCoProduct="7"><referenceToInputOutput>7'
+        "</referenceToInputOutput></allocation></flowData>"
+    )
+    run_fix(_fix("renumber-exchanges"), ds)
+    assert _numbers(ds) == ["7", "8", "1000008002"]
 
 
 def test_every_import_fix_has_provenance():

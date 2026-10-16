@@ -705,16 +705,17 @@ def renumber_exchanges(dataset: etree._Element) -> None:
         for number, group in by_number.items()
         if _index_number(number) is not None
     }
-    # Allocations refer to exchanges by number, so a reference to a shared number is
-    # ambiguous. BAFU has no allocations; stop rather than guess if that changes.
+    # Allocations refer to exchanges by number. A reference to a shared number is
+    # ambiguous, and one to an invalid number would dangle once that exchange gets a
+    # dummy. BAFU has no allocations; stop rather than guess if that changes.
     for allocation in dataset.iterfind("flowData/allocation"):
         references = [allocation.get("referenceToCoProduct")]
         references += [r.text for r in allocation.iterfind("referenceToInputOutput")]
         for reference in references:
-            if len(by_number.get(reference, ())) > 1:
+            if len(by_number.get(reference, ())) > 1 or keepers.get(reference) is None:
                 raise ImportFixError(
-                    f"Allocation refers to exchange number {reference}, which several "
-                    "exchanges share"
+                    f"Allocation refers to exchange number {reference}, which isn't the "
+                    "valid number of exactly one exchange"
                 )
 
     extensions = dataset.find(f"{{{EXT_NS}}}extensions")
