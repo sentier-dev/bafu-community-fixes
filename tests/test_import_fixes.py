@@ -152,6 +152,16 @@ def test_renumbering_refuses_numbers_it_cant_encode(number):
         run_fix(_fix("renumber-exchanges"), ds)
 
 
+def test_renumbering_refuses_unrecorded_number_in_dummy_range():
+    # Kept as is, 1000007002 would clash with the dummy for the second 7
+    ds = _dataset(
+        '<flowData><exchange number="1000007002"/><exchange number="7"/>'
+        '<exchange number="7"/></flowData>'
+    )
+    with pytest.raises(ImportFixError, match="encode"):
+        run_fix(_fix("renumber-exchanges"), ds)
+
+
 @pytest.mark.parametrize(
     "exchanges, reference",
     [

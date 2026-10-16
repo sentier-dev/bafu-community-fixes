@@ -700,10 +700,16 @@ def renumber_exchanges(dataset: etree._Element) -> None:
     by_number: dict[str | None, list[etree._Element]] = {}
     for exchange in exchanges:
         by_number.setdefault(exchange.get("number"), []).append(exchange)
+    # A number in the dummy range is only kept if this fix gave it out before, so a
+    # number from the source can't clash with a dummy.
+    dummies = {
+        e.get("number") for e in dataset.iterfind(f"{{{EXT_NS}}}extensions/{{{EXT_NS}}}exchange")
+    }
     keepers = {
         number: next((e for e in group if e.findtext("outputGroup") == "0"), group[0])
         for number, group in by_number.items()
-        if _index_number(number) is not None
+        if (index := _index_number(number)) is not None
+        and (index < DUMMY_BASE or number in dummies)
     }
     # Allocations refer to exchanges by number. A reference to a shared number is
     # ambiguous, and one to an invalid number would dangle once that exchange gets a
