@@ -15,7 +15,7 @@ def _set_uncertainty(db):
 
 def _break_keys(db):
     for dataset in db:
-        dataset.exchanges[1].number = 1
+        dataset.exchanges[1].number = dataset.exchanges[0].number
 
 
 def test_report(raw_bafu, tmp_path, monkeypatch):

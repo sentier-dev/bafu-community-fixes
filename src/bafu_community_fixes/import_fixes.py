@@ -639,6 +639,35 @@ def correct_known_wrong_cas_numbers(dataset: etree._Element) -> None:
             _set(exchange, "CASNumber", correct)
 
 
+# Dummy exchange numbers are DUMMY_BASE + original number * 1000 + occurrence, so
+# 1000631002 is the second exchange numbered 631. BAFU numbers go up to 997,485, so a
+# dummy can't clash with a real number, and the largest dummy (1,999,999,999) is still a
+# valid 32-bit integer.
+DUMMY_BASE = 1_000_000_000
+MAX_ENCODED_NUMBER = 999_999
+MAX_OCCURRENCE = 999
+
+
+def _is_digits(value: str) -> bool:
+    # str.isdigit() also accepts characters like "²", which int() rejects
+    return value.isascii() and value.isdigit()
+
+
+def _index_number(value: str | None) -> int | None:
+    """`value` as a schema-valid exchange number (1 to 2**31 - 1), or None."""
+    if value is None or not _is_digits(value) or not 1 <= int(value) <= 2**31 - 1:
+        return None
+    return int(value)
+
+
+def _dummy_number(original: str | None, occurrence: int) -> int:
+    if original is None or not _is_digits(original) or int(original) > MAX_ENCODED_NUMBER:
+        raise ImportFixError(f"Can't encode exchange number {original!r} in a dummy number")
+    if occurrence > MAX_OCCURRENCE:
+        raise ImportFixError(f"More than {MAX_OCCURRENCE} exchanges numbered {original}")
+    return DUMMY_BASE + int(original) * 1000 + occurrence
+
+
 @import_fix(
     "renumber-exchanges",
     authored_by=AUTHOR,
@@ -652,23 +681,62 @@ def correct_known_wrong_cas_numbers(dataset: etree._Element) -> None:
     ),
 )
 def renumber_exchanges(dataset: etree._Element) -> None:
-    """Number exchanges 1, 2, 3, ... (BAFU numbers aren't unique within datasets).
+    """Give exchanges that share a number (or have an invalid one) a dummy number.
 
-    The original number is kept as the `originalNumber` extension. About 30% of the
-    original numbers match a dataset number, so they may be useful for linking.
+    BAFU exchange numbers are identifiers. The reference product has the dataset's own
+    number, a technosphere input almost always has the number of the dataset that supplies
+    it, and an elementary flow has a number for the substance. But numbers aren't unique
+    within a dataset: one substance emitted to several subcompartments shares a number,
+    and so do some repeated exchanges.
+
+    So numbers are kept wherever possible. Among the exchanges that share a number, the
+    reference product keeps it, or else the first one in the dataset. The others get a
+    dummy number, 1,000,000,000 + original number × 1,000 + occurrence: `1000631002` is
+    the second exchange numbered 631. Dummies are far above any BAFU number, so they can't
+    be mistaken for one. The original number is also kept as the `originalNumber`
+    extension.
     """
+    exchanges = dataset.findall("flowData/exchange")
+    by_number: dict[str | None, list[etree._Element]] = {}
+    for exchange in exchanges:
+        by_number.setdefault(exchange.get("number"), []).append(exchange)
+    # A number in the dummy range is only kept if this fix gave it out before, so a
+    # number from the source can't clash with a dummy.
+    dummies = {
+        e.get("number") for e in dataset.iterfind(f"{{{EXT_NS}}}extensions/{{{EXT_NS}}}exchange")
+    }
+    keepers = {
+        number: next((e for e in group if e.findtext("outputGroup") == "0"), group[0])
+        for number, group in by_number.items()
+        if (index := _index_number(number)) is not None
+        and (index < DUMMY_BASE or number in dummies)
+    }
+    # Allocations refer to exchanges by number. A reference to a shared number is
+    # ambiguous, and one to an invalid number would dangle once that exchange gets a
+    # dummy. BAFU has no allocations; stop rather than guess if that changes.
+    for allocation in dataset.iterfind("flowData/allocation"):
+        references = [allocation.get("referenceToCoProduct")]
+        references += [r.text for r in allocation.iterfind("referenceToInputOutput")]
+        for reference in references:
+            if len(by_number.get(reference, ())) > 1 or keepers.get(reference) is None:
+                raise ImportFixError(
+                    f"Allocation refers to exchange number {reference}, which isn't the "
+                    "valid number of exactly one exchange"
+                )
+
     extensions = dataset.find(f"{{{EXT_NS}}}extensions")
-    for index, exchange in enumerate(dataset.iterfind("flowData/exchange"), start=1):
+    for exchange in exchanges:
         original = exchange.get("number")
-        if original == str(index):
+        if keepers.get(original) is exchange:
             continue
+        number = str(_dummy_number(original, by_number[original].index(exchange) + 1))
         if extensions is None:
             extensions = etree.SubElement(dataset, f"{{{EXT_NS}}}extensions")
-        attributes = {"number": str(index)}
+        attributes = {"number": number}
         if original is not None:
             attributes["originalNumber"] = original
         etree.SubElement(extensions, f"{{{EXT_NS}}}exchange", attributes)
-        _set(exchange, "number", str(index))
+        _set(exchange, "number", number)
 
 
 @import_fix(

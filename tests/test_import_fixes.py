@@ -9,7 +9,7 @@ from bafu_community_fixes.import_fixes import (
     apply_import_fixes,
     run_fix,
 )
-from bafu_community_fixes.models import OutputGroup
+from bafu_community_fixes.models import EXT_NS, OutputGroup
 
 
 def test_fixed_values(dataset):
@@ -43,8 +43,9 @@ def test_fixed_values(dataset):
 
 def test_exchanges(dataset):
     reference, so2, heat = dataset.exchanges
-    assert [e.number for e in dataset.exchanges] == [1, 2, 3]
-    assert [e.ext.original_number for e in dataset.exchanges] == ["100", "7", "7"]
+    assert [e.number for e in dataset.exchanges] == [100, 7, 1000007002]
+    assert reference.ext is None and so2.ext is None
+    assert heat.ext.original_number == "7"
     assert reference.output_group is OutputGroup.REFERENCE_PRODUCT
     assert reference.location == "EURwoCH"
     assert reference.general_comment == ""
@@ -108,10 +109,83 @@ def test_changes_are_recorded_with_paths():
         Change("metaInformation/modellingAndValidation/validation[2]", "<validation/>", None),
     ]
     assert by_id["renumber-exchanges"] == [
-        Change("flowData/exchange[1]/@number", "7", "1"),
-        Change("flowData/exchange[2]/@number", "7", "2"),
+        Change("flowData/exchange[2]/@number", "7", "1000007002"),
     ]
     assert all(c.field == "flowData/exchange/@number" for c in by_id["renumber-exchanges"])
+
+
+def _numbers(ds: etree._Element) -> list[str]:
+    return [e.get("number") for e in ds.iterfind("flowData/exchange")]
+
+
+def test_renumbering_keeps_unique_numbers_and_the_reference_product():
+    ds = _dataset(
+        "<flowData>"
+        '<exchange number="631"/><exchange number="5"/><exchange number="631"/>'
+        '<exchange number="5"><outputGroup>0</outputGroup></exchange>'
+        '<exchange number="0"/><exchange number="12"/>'
+        "</flowData>"
+    )
+    run_fix(_fix("renumber-exchanges"), ds)
+    assert _numbers(ds) == ["631", "1000005001", "1000631002", "5", "1000000001", "12"]
+    extensions = ds.findall(f"{{{EXT_NS}}}extensions/{{{EXT_NS}}}exchange")
+    assert [(e.get("number"), e.get("originalNumber")) for e in extensions] == [
+        ("1000005001", "5"),
+        ("1000631002", "631"),
+        ("1000000001", "0"),
+    ]
+
+
+def test_renumbering_is_idempotent():
+    ds = _dataset('<flowData><exchange number="7"/><exchange number="7"/></flowData>')
+    run_fix(_fix("renumber-exchanges"), ds)
+    assert run_fix(_fix("renumber-exchanges"), ds) == ([], None)
+    assert _numbers(ds) == ["7", "1000007002"]
+
+
+@pytest.mark.parametrize("number", ["1000000", "-3", "x", "²"])
+def test_renumbering_refuses_numbers_it_cant_encode(number):
+    ds = _dataset(
+        f'<flowData><exchange number="{number}"/><exchange number="{number}"/></flowData>'
+    )
+    with pytest.raises(ImportFixError, match="encode"):
+        run_fix(_fix("renumber-exchanges"), ds)
+
+
+def test_renumbering_refuses_unrecorded_number_in_dummy_range():
+    # Kept as is, 1000007002 would clash with the dummy for the second 7
+    ds = _dataset(
+        '<flowData><exchange number="1000007002"/><exchange number="7"/>'
+        '<exchange number="7"/></flowData>'
+    )
+    with pytest.raises(ImportFixError, match="encode"):
+        run_fix(_fix("renumber-exchanges"), ds)
+
+
+@pytest.mark.parametrize(
+    "exchanges, reference",
+    [
+        ('<exchange number="7"/><exchange number="7"/>', "7"),  # shared
+        ('<exchange number="0"/>', "0"),  # invalid, so it gets a dummy
+        ('<exchange number="7"/>', "8"),  # no such exchange
+    ],
+)
+def test_renumbering_refuses_unsafe_allocation(exchanges, reference):
+    ds = _dataset(
+        f'<flowData>{exchanges}<allocation referenceToCoProduct="{reference}"/></flowData>'
+    )
+    with pytest.raises(ImportFixError, match="Allocation"):
+        run_fix(_fix("renumber-exchanges"), ds)
+
+
+def test_renumbering_allows_allocation_to_a_kept_number():
+    ds = _dataset(
+        '<flowData><exchange number="7"/><exchange number="8"/><exchange number="8"/>'
+        '<allocation referenceToCoProduct="7"><referenceToInputOutput>7'
+        "</referenceToInputOutput></allocation></flowData>"
+    )
+    run_fix(_fix("renumber-exchanges"), ds)
+    assert _numbers(ds) == ["7", "8", "1000008002"]
 
 
 def test_every_import_fix_has_provenance():

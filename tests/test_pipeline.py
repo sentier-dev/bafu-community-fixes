@@ -30,7 +30,7 @@ def test_no_op_patch_records_nothing(db):
 def test_invalid_patch_is_blamed(db):
     def break_keys(db):
         for dataset in db:
-            dataset.exchanges[1].number = 1
+            dataset.exchanges[1].number = dataset.exchanges[0].number
 
     with pytest.raises(PatchError, match="0002-broken"):
         apply_patch(db, Patch("0002-broken", "", break_keys, AUTHOR))
