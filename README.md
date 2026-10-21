@@ -104,7 +104,11 @@ So numbers are kept wherever possible (about 73% of exchanges). Where several ex
 share a number, the reference product keeps it, or else the first one. The others get a
 dummy number, `1,000,000,000 + original number × 1,000 + occurrence`. For example,
 `1000631002` is the second exchange numbered 631. Any number of 1,000,000,000 or more is
-a dummy and links to nothing.
+a dummy. A dummy matches no dataset number, but it still holds the original:
+`(dummy − 1,000,000,000) // 1,000`, also kept as `originalNumber`. For a technosphere
+input the original is the supplying dataset, so a consumer that links inputs by number
+should decode it; in the 2026 release 10,870 inputs get a dummy, because the same
+supplier appears more than once in their dataset.
 
 In Python they are `dataset.ext` and `exchange.ext`. `--no-extensions` leaves them out.
 
